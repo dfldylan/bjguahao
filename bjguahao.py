@@ -321,23 +321,28 @@ class Guahao(object):
         logging.debug("response data:" + response.text)
         try:
             data = json.loads(response.text)
-            if  data["resCode"] == 0:
-                dutys =[]
-                if self.config.duty_code == '1': #上午
-                    dutys = [1]
-                elif self.config.duty_code == '2': #下午
-                    dutys = [2]
-                else: #全天
-                    dutys = [1,2]
-                for duty in dutys:
-                    for duty_result in data['data']:
-                        if(duty_result['dutyCode'] == duty):
-                            self.dutys = duty_result['detail']
-                            doctor = self.select_doctor_by_vec()
-                            if doctor == 'NoDuty' or doctor == 'NotReady' :
-                                continue
-                            return doctor
-                return 'NoDuty'
+            while data["resCode"] != 0:
+                time.sleep(1)
+                response = self.browser.post(self.duty_url, data=payload)
+                logging.debug("response data:" + response.text)
+                data = json.loads(response.text)
+
+            dutys =[]
+            if self.config.duty_code == '1': #上午
+                dutys = [1]
+            elif self.config.duty_code == '2': #下午
+                dutys = [2]
+            else: #全天
+                dutys = [1,2]
+            for duty in dutys:
+                for duty_result in data['data']:
+                    if(duty_result['dutyCode'] == duty):
+                        self.dutys = duty_result['detail']
+                        doctor = self.select_doctor_by_vec()
+                        if doctor == 'NoDuty' or doctor == 'NotReady' :
+                            continue
+                        return doctor
+            return 'NoDuty'
         except Exception as e:
             logging.error(repr(e))
             sys.exit()
